@@ -18,7 +18,6 @@ RETURN r.uid
 POSSIBLE_SUTTA_BY_NAME = '''
 FOR d IN instant_search
     SEARCH PHRASE(d.name, @name, "common_text")
-    OR ANALYZER(LIKE(d.name, @name_like_pattern), "normalize")
     FILTER d.is_segmented != True AND (d.lang == @lang OR d.is_root == true)
 RETURN d.uid
 '''
@@ -233,13 +232,12 @@ def generate_general_query_aql(
         OR PHRASE(d.name, @query, "common_text")
         OR d.uid == @query
     '''
-    aql_condition_part += f'OR ANALYZER(LIKE(d.name, "%{query.lower()}%"), "normalize") '
 
     if matchpartial == 'true':
         aql_condition_part += (
             f'OR LIKE(d.volpage, "%{query}%") '
             f'OR LIKE(d.name, "%{query}%") '
-            f'OR ANALYZER(LIKE(d.name, "%{query.lower()}%"), "normalize") '
+            f'OR ANALYZER(LIKE(d.name, "%{query.lower()}%"), "normalize") ' # this should cover name fuzzy matches, but somehow doesn't...
             f'OR ANALYZER(LIKE(d.segmented_text, "%{query.lower()}%"), "normalize") '
             f'OR ANALYZER(LIKE(d.name, "%{unidecode(query.lower())}%"), "normalize") '
             f'OR ANALYZER(LIKE(d.segmented_text, "%{unidecode(query.lower())}%"), "normalize") '
@@ -1533,7 +1531,6 @@ def fetch_suttaplexs_by_name(db, lang, name):
                 bind_vars={
                     'name': name_exclude_sutta,
                     'lang': lang,
-                    'name_like_pattern': f"%{name.lower()}%"
                 }
             )
         )
@@ -1545,7 +1542,6 @@ def fetch_suttaplexs_by_name(db, lang, name):
             bind_vars={
                 'name': f'{name_exclude_sutta}sutta',
                 'lang': lang,
-                'name_like_pattern': f"%{name.lower()}%"
             }
         ))
     )
